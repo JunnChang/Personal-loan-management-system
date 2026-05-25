@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLMS — Personal Loan Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+  :root {
+    --navy:   #0f1f3d;
+    --slate:  #2c3e6b;
+    --gold:   #c9a84c;
+    --gold-lt:#e8c97a;
+    --white:  #ffffff;
+    --off:    #f5f5f3;
+    --muted:  #8a8f9e;
+    --border: #e2e4ea;
+    --red:    #c0392b;
+  }
+ 
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+ 
+  /* geometric background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(135deg, var(--navy) 0%, var(--slate) 60%, #1a3560 100%);
+    clip-path: polygon(0 0, 58% 0, 42% 100%, 0 100%);
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    top: -80px; left: -80px;
+    width: 360px; height: 360px;
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 50%;
+    z-index: 0;
+  }
+ 
+  .page-wrap {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 1100px;
+    margin: auto;
+    padding: 40px;
+    gap: 60px;
+    align-items: center;
+  }
+ 
+  /* Left branding panel */
+  .brand {
+    color: var(--white);
+    animation: fadeUp 0.7s ease both;
+  }
+  .brand-badge {
+    display: inline-block;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.4);
+    color: var(--gold-lt);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+  }
+  .brand h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 4vw, 48px);
+    line-height: 1.15;
+    margin-bottom: 18px;
+    color: var(--white);
+  }
+  .brand h1 span { color: var(--gold); }
+  .brand p {
+    color: rgba(255,255,255,0.6);
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 340px;
+    margin-bottom: 40px;
+  }
+  .brand-stats {
+    display: flex;
+    gap: 32px;
+  }
+  .stat { border-left: 2px solid var(--gold); padding-left: 14px; }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--white);
+  }
+  .stat-label { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+ 
+  /* Right card */
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 44px 40px;
+    box-shadow: 0 24px 80px rgba(15,31,61,0.18);
+    animation: fadeUp 0.7s 0.15s ease both;
+  }
+  .card-header { margin-bottom: 32px; }
+  .card-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+  .card-header p { font-size: 14px; color: var(--muted); }
+ 
+  .form-group { margin-bottom: 20px; }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+  input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--navy);
+    background: var(--off);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+    background: var(--white);
+  }
+ 
+  .btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s, transform 0.1s;
+    position: relative;
+  }
+  .btn:hover { background: var(--slate); }
+  .btn:active { transform: scale(0.99); }
+  .btn.loading { pointer-events: none; opacity: 0.7; }
+ 
+  .error-msg {
+    background: #fdf0ee;
+    border: 1px solid #f0c0ba;
+    color: var(--red);
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 7px;
+    margin-top: 16px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+ 
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+  .secure-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .secure-note svg { flex-shrink: 0; }
+ 
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+ 
+  @media (max-width: 768px) {
+    .page-wrap { grid-template-columns: 1fr; padding: 24px; gap: 32px; }
+    body::before { clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%); }
+    .brand { text-align: center; }
+    .brand p { max-width: 100%; }
+    .brand-stats { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="brand">
+    <div class="brand-badge">Secure Banking Portal</div>
+    <h1>Personal <span>Loan</span> Management System</h1>
+    <p>A secure, role-based platform for managing the complete loan lifecycle — from application to repayment tracking.</p>
+    <div class="brand-stats">     
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="card-header">
+      <h2>Welcome back</h2>
+      <p>Sign in to access your dashboard</p>
+    </div>
+ 
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+ 
+    <button class="btn" id="loginBtn" onclick="login()">Sign In</button>
+    <div class="error-msg" id="errorMsg"></div>
+ 
+    
+  </div>
+</div>
+ 
+<script>
+async function login() {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('loginBtn');
+  const err      = document.getElementById('errorMsg');
+ 
+  err.classList.remove('show');
+  if (!email || !password) {
+    err.textContent = 'Please enter your email and password.';
+    err.classList.add('show'); return;
+  }
+ 
+  btn.textContent = 'Signing in…';
+  btn.classList.add('loading');
+ 
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+     if (res.status === 429) {
+            const data = await res.json();
+            err.textContent = data.error;
+            err.classList.add('show');
+            btn.textContent = 'Sign In';
+            btn.classList.remove('loading');
+            return;
+        }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+ 
+    const routes = {
+      Admin:       'admin.html',
+      LoanOfficer: 'officer.html',
+      Customer:    'customer.html'
+    };
+    window.location.href = routes[data.role] || 'index.html';
+ 
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.add('show');
+    btn.textContent = 'Sign In';
+    btn.classList.remove('loading');
+  }
+}
+ 
+document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+</script>
+</body>
+</html>

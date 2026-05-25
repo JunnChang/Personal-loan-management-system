@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLMS — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0f1f3d; --slate: #2c3e6b; --gold: #c9a84c; --gold-lt: #e8c97a;
+    --white: #ffffff; --off: #f5f5f3; --muted: #8a8f9e; --border: #e2e4ea;
+    --green: #1a7f5a; --green-bg: #eef7f3; --red: #c0392b; --red-bg: #fdf0ee;
+    --pending-bg: #fef9ee; --pending: #b07d1a;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--off); color: var(--navy); min-height: 100vh; }
+
+  .sidebar { position: fixed; top: 0; left: 0; width: 240px; height: 100vh; background: var(--navy); display: flex; flex-direction: column; z-index: 100; }
+  .sidebar-logo { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .sidebar-logo span { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--white); }
+  .sidebar-logo small { display: block; font-size: 11px; color: var(--gold); letter-spacing: 1px; margin-top: 2px; }
+  .nav-section { padding: 16px 24px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.25); }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: rgba(255,255,255,0.55); font-size: 14px; cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent; }
+  .nav-item:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--white); border-left-color: var(--gold); background: rgba(201,168,76,0.08); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .sidebar-footer { padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 14px; color: var(--navy); flex-shrink: 0; }
+  .user-name { font-size: 13px; color: var(--white); font-weight: 500; }
+  .user-role { font-size: 11px; color: var(--muted); }
+  .logout-btn { width: 100%; padding: 9px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .logout-btn:hover { background: rgba(255,255,255,0.12); color: var(--white); }
+
+  .main { margin-left: 240px; padding: 36px 40px; }
+  .page-header { margin-bottom: 32px; }
+  .page-header h1 { font-family: 'Playfair Display', serif; font-size: 28px; }
+  .page-header p { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 28px; }
+  .stat-card { background: var(--white); border-radius: 12px; padding: 20px 22px; border: 1px solid var(--border); }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--navy); }
+
+  .card { background: var(--white); border-radius: 12px; padding: 28px; border: 1px solid var(--border); margin-bottom: 24px; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--navy); margin-bottom: 20px; }
+  .card-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 500; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 13px 14px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--off); }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .badge-pending  { background: var(--pending-bg); color: var(--pending); }
+  .badge-approved { background: var(--green-bg);   color: var(--green); }
+  .badge-rejected { background: var(--red-bg);     color: var(--red); }
+  .badge-admin    { background: rgba(15,31,61,0.08); color: var(--navy); }
+  .badge-loanofficer { background: rgba(44,62,107,0.1); color: var(--slate); }
+  .badge-customer { background: rgba(201,168,76,0.12); color: #8a6820; }
+
+  .btn-primary { padding: 10px 22px; background: var(--navy); color: var(--white); border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+  .btn-primary:hover { background: var(--slate); }
+  .btn-danger { padding: 6px 14px; background: var(--red-bg); color: var(--red); border: 1px solid rgba(192,57,43,0.2); border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .btn-danger:hover { background: var(--red); color: var(--white); }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(15,31,61,0.5); z-index: 200; display: none; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--white); border-radius: 14px; padding: 36px; width: 460px; box-shadow: 0 24px 80px rgba(0,0,0,0.2); }
+  .modal h3 { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: var(--navy); margin-bottom: 7px; }
+  input, select { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--navy); background: var(--off); outline: none; transition: border-color 0.2s; }
+  input:focus, select:focus { border-color: var(--gold); background: var(--white); }
+  .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+  .btn-cancel { padding: 10px 20px; background: var(--off); color: var(--muted); border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
+
+  .audit-row td:first-child { font-family: monospace; font-size: 12px; color: var(--muted); }
+  .event-type { font-weight: 500; }
+
+  .toast { position: fixed; bottom: 28px; right: 28px; background: var(--navy); color: var(--white); padding: 13px 20px; border-radius: 9px; font-size: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transform: translateY(20px); opacity: 0; transition: all 0.3s; z-index: 999; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <span>PLMS</span>
+    <small>Administrator Portal</small>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="showPanel('dashboard', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-section">Management</div>
+    <div class="nav-item" onclick="showPanel('users', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Users
+    </div>
+    <div class="nav-item" onclick="showPanel('loans', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Loan Applications
+    </div>
+    <div class="nav-section">Security</div>
+    <div class="nav-item" onclick="showPanel('audit', this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Audit Log
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="avatar" id="avatarInitial">?</div>
+      <div>
+        <div class="user-name" id="userName">Loading…</div>
+        <div class="user-role">Administrator</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </div>
+</div>
+
+<main class="main">
+
+  <!-- Dashboard Panel -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="page-header">
+      <h1>Admin Dashboard</h1>
+      <p>System overview and key metrics.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value" id="totalUsers">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Applications</div>
+        <div class="stat-value" id="totalLoans">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Approved</div>
+        <div class="stat-value" id="approvedLoans" style="color:var(--green)">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Audit Events</div>
+        <div class="stat-value" id="auditCount" style="color:var(--slate)">—</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recent Audit Events</div>
+      <table>
+        <thead><tr><th>Timestamp</th><th>Event</th><th>Table</th><th>Performed By</th></tr></thead>
+        <tbody id="recentAuditBody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Users Panel -->
+  <div class="panel" id="panel-users">
+    <div class="page-header">
+      <h1>User Management</h1>
+      <p>Create and manage system users across all roles.</p>
+    </div>
+    <div class="card">
+      <div class="card-header-row">
+        <div class="card-title" style="margin-bottom:0">All Users</div>
+        <button class="btn-primary" onclick="openModal()">+ Add User</button>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>IC Number</th><th>Role</th><th>Status</th></tr></thead>
+        <tbody id="usersTableBody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Loans Panel -->
+  <div class="panel" id="panel-loans">
+    <div class="page-header">
+      <h1>Loan Applications</h1>
+      <p>Full visibility into all loan applications. Admins can delete records.</p>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>ID</th><th>Customer</th><th>Amount</th><th>Income</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
+        <tbody id="loansTableBody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Audit Panel -->
+  <div class="panel" id="panel-audit">
+    <div class="page-header">
+      <h1>Audit Log</h1>
+      <p>Complete record of all system events.</p>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Timestamp</th><th>Event Type</th><th>Table</th><th>Performed By</th><th>Record ID</th></tr></thead>
+        <tbody id="auditTableBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Add New User</h3>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="newName" placeholder="e.g. Ahmad bin Ali">
+    </div>
+    <div class="form-group">
+      <label>IC Number</label>
+      <input type="text" id="newIC" placeholder="e.g. 900101-14-5678">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="newEmail" placeholder="user@example.com">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="newPassword" placeholder="••••••••">
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select id="newRole">
+        <option value="1">Admin</option>
+        <option value="2">Loan Officer</option>
+        <option value="3" selected>Customer</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="addUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let users = [], loans = [], auditLogs = [];
+
+function showPanel(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'users')  loadUsers();
+  if (name === 'loans')  loadLoans();
+  if (name === 'audit')  loadAudit();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function openModal()  { document.getElementById('modalOverlay').classList.add('show'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = 'index.html';
+}
+
+async function init() {
+  const res = await fetch('/api/auth/me');
+  if (!res.ok) { window.location.href = 'index.html'; return; }
+  const user = await res.json();
+  if (user.role !== 'Admin') { window.location.href = 'index.html'; return; }
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('avatarInitial').textContent = user.name.charAt(0).toUpperCase();
+  loadDashboard();
+}
+
+async function loadDashboard() {
+  const [uRes, lRes, aRes] = await Promise.all([
+    fetch('/api/admin/users'),
+    fetch('/api/loans'),
+    fetch('/api/admin/audit')
+  ]);
+  users     = await uRes.json();
+  loans     = await lRes.json();
+  auditLogs = await aRes.json();
+
+  document.getElementById('totalUsers').textContent   = users.length;
+  document.getElementById('totalLoans').textContent   = loans.length;
+  document.getElementById('approvedLoans').textContent= loans.filter(l => l.Status === 'Approved').length;
+  document.getElementById('auditCount').textContent   = auditLogs.length;
+
+  const recent = auditLogs.slice(0, 5);
+  document.getElementById('recentAuditBody').innerHTML = recent.length
+    ? recent.map(a => `<tr class="audit-row">
+        <td>${new Date(a.EventTimestamp).toLocaleString()}</td>
+        <td class="event-type">${a.EventType}</td>
+        <td>${a.TableAffected || '—'}</td>
+        <td>${a.PerformedBy}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty">No audit events yet.</td></tr>';
+}
+
+async function loadUsers() {
+  const res = await fetch('/api/admin/users');
+  users     = await res.json();
+  const tbody = document.getElementById('usersTableBody');
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td>#${u.UserID}</td>
+      <td>${u.FullName}</td>
+      <td>${u.Email}</td>
+      <td><span style="font-family:monospace;font-size:12px">${u.ICNumber || '—'}</span></td>
+      <td><span class="badge badge-${u.RoleName.toLowerCase().replace(' ','')}">${u.RoleName}</span></td>
+      <td><span class="badge" style="background:${u.IsActive ? 'var(--green-bg)' : 'var(--red-bg)'}; color:${u.IsActive ? 'var(--green)' : 'var(--red)'}">${u.IsActive ? 'Active' : 'Inactive'}</span></td>
+    </tr>`).join('');
+}
+
+async function loadLoans() {
+  const res = await fetch('/api/loans');
+  loans     = await res.json();
+  const tbody = document.getElementById('loansTableBody');
+  if (!loans.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">No applications.</td></tr>'; return; }
+  tbody.innerHTML = loans.map(l => `
+    <tr>
+      <td>#${l.ApplicationID}</td>
+      <td>${l.CustomerID}</td>
+      <td>MYR ${Number(l.RequestedAmount).toLocaleString()}</td>
+      <td>MYR ${Number(l.MonthlyIncome).toLocaleString()}</td>
+      <td><span class="badge badge-${l.Status.toLowerCase()}">${l.Status}</span></td>
+      <td>${new Date(l.SubmittedAt).toLocaleDateString()}</td>
+      <td><button class="btn-danger" onclick="deleteLoan(${l.ApplicationID})">Delete</button></td>
+    </tr>`).join('');
+}
+
+async function loadAudit() {
+  const res = await fetch('/api/admin/audit');
+  auditLogs = await res.json();
+  const tbody = document.getElementById('auditTableBody');
+  if (!auditLogs.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No audit records.</td></tr>'; return; }
+  tbody.innerHTML = auditLogs.map(a => `
+    <tr class="audit-row">
+      <td>${new Date(a.EventTimestamp).toLocaleString()}</td>
+      <td class="event-type">${a.EventType}</td>
+      <td>${a.TableAffected || '—'}</td>
+      <td>${a.PerformedBy}</td>
+      <td>${a.AffectedRecordID || '—'}</td>
+    </tr>`).join('');
+}
+
+async function addUser() {
+  const body = {
+    fullName: document.getElementById('newName').value,
+    icNumber: document.getElementById('newIC').value,
+    email:    document.getElementById('newEmail').value,
+    password: document.getElementById('newPassword').value,
+    roleId:   parseInt(document.getElementById('newRole').value)
+  };
+  if (!body.fullName || !body.email || !body.password)
+    return showToast('Please fill in all required fields.');
+
+  const res = await fetch('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (res.ok) {
+    showToast('User created successfully!');
+    closeModal();
+    loadUsers();
+  } else {
+    const d = await res.json();
+    showToast('Error: ' + d.error);
+  }
+}
+
+async function deleteLoan(id) {
+  if (!confirm(`Delete application #${id}? This cannot be undone.`)) return;
+  const res = await fetch(`/api/loans/${id}`, { method: 'DELETE' });
+  if (res.ok) { showToast(`Application #${id} deleted.`); loadLoans(); }
+  else { const d = await res.json(); showToast('Error: ' + d.error); }
+}
+
+
+
+init();
+</script>
+</body>
+</html>

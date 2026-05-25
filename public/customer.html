@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLMS — Customer Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0f1f3d; --slate: #2c3e6b; --gold: #c9a84c; --gold-lt: #e8c97a;
+    --white: #ffffff; --off: #f5f5f3; --muted: #8a8f9e; --border: #e2e4ea;
+    --green: #1a7f5a; --green-bg: #eef7f3; --red: #c0392b; --red-bg: #fdf0ee;
+    --pending-bg: #fef9ee; --pending: #b07d1a;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--off); color: var(--navy); min-height: 100vh; }
+ 
+  /* Sidebar */
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+    background: var(--navy); display: flex; flex-direction: column; z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sidebar-logo span {
+    font-family: 'Playfair Display', serif; font-size: 18px; color: var(--white);
+  }
+  .sidebar-logo small { display: block; font-size: 11px; color: var(--gold); letter-spacing: 1px; margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 20px 0; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 24px; color: rgba(255,255,255,0.55);
+    font-size: 14px; cursor: pointer; transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--white); border-left-color: var(--gold); background: rgba(201,168,76,0.08); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .sidebar-footer { padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--gold); display: flex; align-items: center; justify-content: center;
+    font-weight: 500; font-size: 14px; color: var(--navy); flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; color: var(--white); font-weight: 500; }
+  .user-role { font-size: 11px; color: var(--muted); }
+  .logout-btn {
+    width: 100%; padding: 9px; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+    color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.2s;
+  }
+  .logout-btn:hover { background: rgba(255,255,255,0.12); color: var(--white); }
+ 
+  /* Main */
+  .main { margin-left: 240px; padding: 36px 40px; min-height: 100vh; }
+  .page-header { margin-bottom: 32px; }
+  .page-header h1 { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--navy); }
+  .page-header p { font-size: 14px; color: var(--muted); margin-top: 4px; }
+ 
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+ 
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--white); border-radius: 12px; padding: 22px 24px;
+    border: 1px solid var(--border);
+  }
+  .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--navy); }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+ 
+  /* Card */
+  .card {
+    background: var(--white); border-radius: 12px; padding: 28px;
+    border: 1px solid var(--border); margin-bottom: 24px;
+  }
+  .card-title {
+    font-family: 'Playfair Display', serif; font-size: 18px;
+    color: var(--navy); margin-bottom: 20px;
+  }
+ 
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; color: var(--navy); margin-bottom: 7px; }
+  input, select {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+    color: var(--navy); background: var(--off); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input:focus, select:focus {
+    border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.1); background: var(--white);
+  }
+  .btn-primary {
+    padding: 11px 28px; background: var(--navy); color: var(--white);
+    border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--slate); }
+ 
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 500; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 14px; font-size: 14px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--off); }
+ 
+  /* Badge */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .badge-pending  { background: var(--pending-bg);  color: var(--pending); }
+  .badge-approved { background: var(--green-bg);    color: var(--green); }
+  .badge-rejected { background: var(--red-bg);      color: var(--red); }
+ 
+  .toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--navy); color: var(--white);
+    padding: 13px 20px; border-radius: 9px; font-size: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    transform: translateY(20px); opacity: 0; transition: all 0.3s;
+    z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+ 
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+ 
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <span>PLMS</span>
+    <small>Customer Portal</small>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="showPanel('apply')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Apply for Loan
+    </div>
+    <div class="nav-item" onclick="showPanel('applications')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      My Applications
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="avatar" id="avatarInitial">?</div>
+      <div>
+        <div class="user-name" id="userName">Loading…</div>
+        <div class="user-role">Customer</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </div>
+</div>
+ 
+<main class="main">
+  <!-- Apply Panel -->
+  <div class="panel active" id="panel-apply">
+    <div class="page-header">
+      <h1>Apply for a Loan</h1>
+      <p>Fill in the details below to submit a new loan application.</p>
+    </div>
+ 
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card">
+        <div class="stat-label">Total Applications</div>
+        <div class="stat-value" id="totalApps">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Approved</div>
+        <div class="stat-value" id="approvedApps" style="color:var(--green)">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending Review</div>
+        <div class="stat-value" id="pendingApps" style="color:var(--pending)">—</div>
+      </div>
+    </div>
+ 
+    <div class="card">
+      <div class="card-title">New Loan Application</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Loan Product</label>
+          <select id="loanProduct">
+            <option value="">Select a product…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Requested Amount (MYR)</label>
+          <input type="number" id="requestedAmount" placeholder="e.g. 50000" min="1000">
+        </div>
+        <div class="form-group">
+          <label>Monthly Income (MYR)</label>
+          <input type="number" id="monthlyIncome" placeholder="e.g. 5000" min="500">
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+          <button class="btn-primary" onclick="submitApplication()">Submit Application</button>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Applications Panel -->
+  <div class="panel" id="panel-applications">
+    <div class="page-header">
+      <h1>My Applications</h1>
+      <p>Track the status of your loan applications.</p>
+    </div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Product</th><th>Amount</th><th>Status</th><th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody id="appsTableBody">
+          <tr><td colspan="5" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+ 
+<div class="toast" id="toast"></div>
+ 
+<script>
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'applications') loadApplications();
+}
+ 
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+ 
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = 'index.html';
+}
+ 
+async function init() {
+  const res  = await fetch('/api/auth/me');
+  if (!res.ok) { window.location.href = 'index.html'; return; }
+  const user = await res.json();
+  if (user.role !== 'Customer') { window.location.href = 'index.html'; return; }
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('avatarInitial').textContent = user.name.charAt(0).toUpperCase();
+  loadProducts();
+  loadStats();
+}
+ 
+async function loadProducts() {
+  const res  = await fetch('/api/loans/products');
+  const data = await res.json();
+  const sel  = document.getElementById('loanProduct');
+  data.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.ProductID;
+    o.textContent = `${p.ProductName} — ${p.InterestRate}% interest, up to MYR ${Number(p.MaxAmount).toLocaleString()}`;
+    sel.appendChild(o);
+  });
+}
+ 
+async function loadStats() {
+  const res  = await fetch('/api/loans');
+  const data = await res.json();
+  document.getElementById('totalApps').textContent    = data.length;
+  document.getElementById('approvedApps').textContent = data.filter(a => a.Status === 'Approved').length;
+  document.getElementById('pendingApps').textContent  = data.filter(a => a.Status === 'Pending').length;
+}
+ 
+async function loadApplications() {
+  const res  = await fetch('/api/loans');
+  const data = await res.json();
+  const tbody = document.getElementById('appsTableBody');
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No applications yet.</td></tr>'; return; }
+  tbody.innerHTML = data.map(a => `
+    <tr>
+      <td>#${a.ApplicationID}</td>
+      <td>Loan Product #${a.LoanProductID}</td>
+      <td>MYR ${Number(a.RequestedAmount).toLocaleString()}</td>
+      <td><span class="badge badge-${a.Status.toLowerCase()}">${a.Status}</span></td>
+      <td>${new Date(a.SubmittedAt).toLocaleDateString()}</td>
+    </tr>`).join('');
+}
+ 
+async function submitApplication() {
+  const loanProductId   = document.getElementById('loanProduct').value;
+  const requestedAmount = document.getElementById('requestedAmount').value;
+  const monthlyIncome   = document.getElementById('monthlyIncome').value;
+ 
+  if (!loanProductId || !requestedAmount || !monthlyIncome)
+    return showToast('Please fill in all fields.');
+ 
+  const res = await fetch('/api/loans/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ loanProductId, requestedAmount, monthlyIncome })
+  });
+  const data = await res.json();
+  if (res.ok) {
+    showToast('Application submitted successfully!');
+    loadStats();
+    document.getElementById('loanProduct').value   = '';
+    document.getElementById('requestedAmount').value = '';
+    document.getElementById('monthlyIncome').value   = '';
+  } else {
+    showToast('Error: ' + data.error);
+  }
+}
+ 
+init();
+</script>
+</body>
+</html>
